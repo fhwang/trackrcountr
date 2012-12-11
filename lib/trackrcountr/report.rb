@@ -7,26 +7,27 @@ module Trackrcountr
       @counts_by_date_and_story_type = Hash.new { |outer_hash, date|
         outer_hash[date] = Hash.new(0)
       }
+      @page_size = 100
+      @offset = 0
     end
 
     def collect
-      page_size = 5
-      offset = 0
-      stories = @project.stories.all(
-        state: 'accepted', limit: page_size, 
-        modified_since: @start_date, includedone: true, offset: offset
-      )
+      stories = get_stories
       while !stories.empty?
         stories.each do |story|
           date = story.accepted_at.to_date
           @counts_by_date_and_story_type[date][story.story_type] += 1
         end
-        offset += page_size
-        stories = @project.stories.all(
-          state: 'accepted', limit: page_size,
-          modified_since: @start_date, includedone: true, offset: offset
-        )
+        @offset += @page_size
+        stories = get_stories
       end
+    end
+
+    def get_stories
+      @project.stories.all(
+        state: 'accepted', limit: @page_size, 
+        modified_since: @start_date, includedone: true, offset: @offset
+      )
     end
 
     def to_csv
